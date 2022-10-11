@@ -8,7 +8,7 @@ http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/m
 http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
 http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="85a59467-5f14-4ec4-9a2f-8c5c53285e8b" >
-		<db:generic-connection url="${db.URL}" driverClassName="${db.driver}" user="${db.user}" password="${db.password}" />
+		<db:generic-connection url="${db.URL}" driverClassName="${db.driver}" user="${db.user}" password="${secure::db.password}" />
 	</db:config>
 	<configuration-properties doc:name="Configuration properties" doc:id="a0df0b87-3e6f-4e43-8c3d-89fbaf945934" file="${env}-configuration.properties" />
 	<global-property doc:name="Global Property" doc:id="daae494b-5bb6-4798-895c-30e93e9f63de" name="env" value="prod" />
