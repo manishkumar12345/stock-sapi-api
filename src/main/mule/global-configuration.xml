@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
-	xmlns:db="http://www.mulesoft.org/schema/mule/db"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
-http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd">
 	<db:config name="Database_Config" doc:name="Database Config" doc:id="85a59467-5f14-4ec4-9a2f-8c5c53285e8b" >
 		<db:generic-connection url="${db.URL}" driverClassName="${db.driver}" user="${db.user}" password="${db.password}" />
 	</db:config>
@@ -13,4 +14,5 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 	<global-property doc:name="Global Property" doc:id="daae494b-5bb6-4798-895c-30e93e9f63de" name="env" value="prod" />
 	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="c754a3ec-804f-413e-89ce-91a36d0ed350" environment="${mule.env}" />
 	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="aa1725c0-bebe-42a5-a291-bf4409bbe465" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="d587c172-75d0-4b61-a7c4-b428561b255d" file="prod-configuration.properties" key="1234567812345678" />
 </mule>
