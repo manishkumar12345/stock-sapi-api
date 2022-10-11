@@ -1,0 +1,99 @@
+#%RAML 1.0
+title: stock-sapi-api
+
+protocols: [HTTP,HTTPS]
+types:
+  customer: !include DataTypes/customerDataType.raml
+  updateCustomer: !include DataTypes/updateCustomerDataType.raml
+  customer-document: !include DataTypes/cust-docDataType.raml
+  cust-portfolio: !include DataTypes/cust-portfolio-dataType.raml
+  
+traits:
+  errorResponses: !include traits/errorTrait.raml
+
+securitySchemes:
+  customSecurity: !include common/securityScheme.raml
+securedBy:
+  - customSecurity
+
+/customer:
+  post:
+    is: [errorResponses]
+    description: Add new customer.
+    body:
+      application/json:
+        type: customer
+        examples: !include Examples/customerExample.raml
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include error-response/201.json
+  
+  /{customerId}:
+    put:
+      is: [errorResponses]
+      description: Update customer detail
+      body:
+        application/json:
+          type: updateCustomer
+          examples: !include Examples/customerExample.raml
+      responses:
+        200:
+          body:
+            application/json:
+              example: !include error-response/200.json
+                
+  
+
+    get:
+      is: [errorResponses]
+      description: Get customer data by ID
+      responses:
+        200:
+          body:
+            application/json:
+              type: customer
+              examples: !include Examples/customerExample.raml
+                
+
+  /all:
+    get:
+      is: [errorResponses]
+      description: Get all customer data
+      queryParameters:
+        limit:
+          type: integer
+          required: true
+      responses:
+        200:
+          body:
+            application/json:
+              type: customer[]
+              examples: !include Examples/customersExample.raml  
+
+
+/customer-document:
+  post:
+    is: [errorResponses]
+    description: Add the Customer Document details
+    body:
+      application/json:
+        type: customer-document
+        examples: !include Examples/cust-docExample.raml
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include error-response/201.json
+  
+  /{customerID}:
+    get:
+      is: [errorResponses]
+      description: Get customer document by Id
+      responses:
+        200:
+          body:
+            application/json:
+              type: customer-document
+              examples: !include Examples/cust-docExample.raml

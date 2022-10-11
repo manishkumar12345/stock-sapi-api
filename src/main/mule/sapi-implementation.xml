@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:json-logger="http://www.mulesoft.org/schema/mule/json-logger"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json-logger http://www.mulesoft.org/schema/mule/json-logger/current/mule-json-logger.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<sub-flow name="insert-customer-data" doc:id="c504826a-d784-4969-ac80-429b4a6cb2bd" >
+		<logger level="INFO" doc:name="Logger" doc:id="b9ca9cb8-c601-4638-a528-d8ddf351ecd8" message="#[payload.email]"/>
+		<db:select doc:name="Select" doc:id="d96ab87b-945c-49a3-8cbd-04a54a66194f" config-ref="Database_Config" target="checkCustomerEmail">
+			<db:sql ><![CDATA[select * from customers WHERE email = :email]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	email : payload.email
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="e28bd1cc-90c5-4f57-b8cc-6072773e847d" message="zzz"/>
+		<choice doc:name="Choice" doc:id="c9e1c7cb-a573-48a2-bdaa-7a30b94135eb" >
+			<when expression="#[sizeOf(vars.checkCustomerEmail)&gt;0]">
+				<ee:transform doc:name="Transform Message" doc:id="c226c8a3-3a19-425f-87cc-f03d20e38f60" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var existEmail = payload.email
+---
+{
+	'message' : "Customer already exist with this " ++ existEmail as String ++ " email."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<db:insert doc:name="Insert" doc:id="844abcb2-a0d9-4f74-aa1c-251c3353d97e" config-ref="Database_Config" autoGenerateKeys="true" target="insertCustomerData">
+					<db:sql ><![CDATA[insert into customers(first_name,last_name,email,phone,date_of_birth,gender,employee_type,annual_income,active,created_at) 
+VALUES(:first_name,:last_name,:email,:phone,:date_of_birth,:gender,:employee_type,:annual_income,:active,:created_at)]]></db:sql>
+					<db:parameter-types >
+						<db:parameter-type key="active" type="OTHER" />
+					</db:parameter-types>
+					<db:input-parameters ><![CDATA[#[{
+	first_name: payload.first_name,
+	last_name: payload.last_name,
+	email: payload.email,
+	phone: payload.phone,
+	date_of_birth: payload.date_of_birth as Date {format: "yyyy-MM-dd"},
+	gender: payload.gender,
+	employee_type: payload.employee_type,
+	annual_income: payload.annual_income,
+	active: payload.active,
+	created_at: now() as Date {format: "yyyy-MM-dd"}
+}]]]></db:input-parameters>
+				</db:insert>
+				<ee:transform doc:name="Transform Message" doc:id="d1009413-5651-4102-904d-1a3c9082121c" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'success': 'Customer has been created successfully.'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="update-customer-data" doc:id="a8b9f351-73f2-4d61-a22f-fd3675f73a30" >
+		<logger level="INFO" doc:name="Logger" doc:id="2438757e-9e1b-499a-ba0d-58da765a067c" message="123"/>
+		<validation:is-not-null doc:name="Is not null" doc:id="e1b9ac41-31a4-4080-a204-07324ae279c7" config-ref="Validation_Config" value="#[attributes.uriParams.'customerId']"/>
+		<set-variable value="#[attributes.uriParams.'customerId']" doc:name="Set Variable" doc:id="779abaa9-aa4d-4d8c-ad9d-1be05e28eebf" variableName="customerId"/>
+		<db:query-single doc:name="Query single" doc:id="5927e93e-5bd2-4a1a-be8b-7e16eac1dc7e" config-ref="Database_Config" target="customerDataById">
+			<db:sql ><![CDATA[select * from customers where id =:customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	customerId : vars.customerId
+}]]]></db:input-parameters>
+		</db:query-single>
+		<ee:transform doc:name="Transform Message" doc:id="e62afb56-8b18-4f4b-8577-a620d1e46e01" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'first_name' : payload.first_name default vars.customerDataById.first_name,
+	'last_name' : payload.last_name default vars.customerDataById.last_name,
+	'email' : payload.email default vars.customerDataById.email,
+	'phone' : payload.phone default vars.customerDataById.phone,
+	'date_of_birth' : payload.date_of_birth default vars.customerDataById.date_of_birth,
+	'gender' : payload.gender default vars.customerDataById.gender,
+	'employee_type' : payload.employee_type default vars.customerDataById.employee_type,
+	'annual_income' : payload.annual_income default vars.customerDataById.annual_income,
+	'active' : payload.active default vars.customerDataById.active
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="ad273f2d-e0b0-4ee4-85a7-37e526433905" >
+			<when expression="#[sizeOf(vars.customerDataById)&gt;0]">
+				<db:update doc:name="Update" doc:id="0a260590-3dcb-42e6-abca-aeed6f05cacb" config-ref="Database_Config">
+					<db:sql ><![CDATA[update customers set first_name =: first_name,last_name = :last_name,email = :email, phone = :phone,date_of_birth = :date_of_birth,gender = :gender,employee_type = :employee_type,annual_income = :annual_income,active = :active
+where id = :customer_id]]></db:sql>
+					<db:parameter-types >
+						<db:parameter-type key="active" type="OTHER" />
+					</db:parameter-types>
+					<db:input-parameters ><![CDATA[#[{
+	customer_id: vars.customerId,
+	first_name: payload.first_name,
+	last_name: payload.last_name,
+	email: payload.email,
+	phone: payload.phone,
+	date_of_birth: payload.date_of_birth as Date {format: "yyyy-MM-dd"},
+	gender: payload.gender,
+	employee_type: payload.employee_type,
+	annual_income: payload.annual_income,
+	active: payload.active,
+	updated_at: now() as Date {format: "yyyy-MM-dd"}
+	
+}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="Transform Message" doc:id="ec7e2e09-00cb-4e09-8800-cc7a97687eb1" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'success': 'Customer updated successfully'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="18fa633e-f7a3-48cc-98d0-fe92f0ba5584" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message' : 'Customer does not exist'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="get-all-customer-data" doc:id="37eadf34-fa69-4e1a-b731-6b10be3c5a43" >
+		<logger level="INFO" doc:name="Logger" doc:id="a838f06e-a513-4049-bb0e-8e8d94b14829" message="abc"/>
+		<db:select doc:name="Select Customer Data" doc:id="70e1e21b-d0f7-4242-af4f-30591a0673d0" config-ref="Database_Config" target="allCustomersData">
+			<db:sql ><![CDATA[SELECT customers.*, gender.name as genderValue
+FROM customers
+LEFT JOIN gender ON customers.gender = gender.id
+ORDER BY customers.first_name LIMIT :limit;]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	limit: message.attributes.uriParams.'limit'
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="4779efb9-f194-44ef-83dd-e156433ad936" >
+			<when expression="#[sizeOf(vars.allCustomersData)&gt;0]">
+				<ee:transform doc:name="Transform Message" doc:id="2fdd52ab-3ac0-42d5-8607-278693ba0a45" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.allCustomersData]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="ae0a25f5-0b87-4d47-ad2a-f69b567171c2" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message': 'No record found'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="get-customer-by-id" doc:id="7fde2619-8d09-4065-ada2-aa89294cdfc8" >
+		<logger level="INFO" doc:name="Logger" doc:id="f6ee7b75-0896-445f-84d5-62dad0216879" message="abc"/>
+		<db:select doc:name="Select customer by id" doc:id="b88a2bd9-5598-4c96-9ef4-d76eb34cc3f5" config-ref="Database_Config" target="getCustomerById">
+			<db:sql ><![CDATA[select * from customers where id =:customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	customerId : message.attributes.uriParams.'customerId'
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="da7b81e6-ec30-40c7-bc1e-42b3d718f474" >
+			<when expression="#[sizeOf(vars.getCustomerById)&gt;0]">
+				<ee:transform doc:name="Transform Message" doc:id="00c5c44c-c5ba-435b-b9ef-8860699c2614" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="da695540-6b81-4482-adf3-9342b6708760" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message': 'No record found.'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="sapi-add-customer-document" doc:id="5a2d2b2d-0529-4ece-9dc1-fcd4547a0aa7" >
+		<logger level="INFO" doc:name="Logger" doc:id="7a5f4640-1cdf-4071-8ceb-3ad3c20439c6" message="#[payload]"/>
+		<validation:is-number doc:name="customer id should be number" doc:id="8f151b89-ae79-47a4-a04c-cb9081a89ae1" config-ref="Validation_Config" value="#[payload.customer_id]" numberType="INTEGER"/>
+		<validation:is-not-null doc:name="customer id should not null" doc:id="8f1c3baa-0981-4c2e-b861-d5494c33422d" config-ref="Validation_Config" value="#[payload.customer_id]"/>
+		<set-variable value="#[payload.customer_id]" doc:name="Set Variable" doc:id="3332dbbe-3130-47aa-970f-81cb6b66b3ae" variableName="customerId"/>
+		<db:select doc:name="Select" doc:id="184dc76d-e215-4f25-ba6d-a0b573ea4aa7" config-ref="Database_Config" target="checkCustomerExist">
+			<db:sql ><![CDATA[select * from customers where id = :customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	customerId : vars.customerId
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="659609da-26c0-41b9-83c5-8c91280c2569" >
+			<when expression="#[sizeOf(vars.checkCustomerExist)&gt;0]">
+				<logger level="INFO" doc:name="Logger" doc:id="bc7de0bf-5f03-4dcb-a02e-92c477c75584" message="hello"/>
+				<db:insert doc:name="add-customer-document" doc:id="51f259a0-b97d-4b9f-9d9c-7f301498455a" config-ref="Database_Config">
+					<db:sql ><![CDATA[insert into customers_documents(customer_id,doc_type,image_url,doc_status) 
+values(:customer_id,:doc_type,:image_url,:doc_status)
+]]></db:sql>
+					<db:parameter-types >
+						<db:parameter-type key="doc_type" type="OTHER" />
+						<db:parameter-type key="doc_status" type="OTHER" />
+					</db:parameter-types>
+					<db:input-parameters ><![CDATA[#[{
+	customer_id: payload.customer_id,
+	doc_type: payload."type",
+	image_url: payload.image_url,
+	doc_status: payload.status
+}]]]></db:input-parameters>
+				</db:insert>
+				<ee:transform doc:name="Transform Message" doc:id="5318d4e2-79aa-4a64-8fc1-54f72d7aea63" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"success" : "The Customer Document has been successfully added."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="a1a71574-fe64-439e-878f-4706e710b9eb" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message' : 'Customer does not exist'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="sapi-customer-doc-by-id" doc:id="d68cc106-24cf-4758-ae86-72f0e0de0652" >
+		<logger level="INFO" doc:name="Logger" doc:id="4cab76e4-e72b-4d11-8cd3-3ff05fc1bd64" message="ss"/>
+		<validation:is-not-null doc:name="Is not null" doc:id="b92bad50-b5aa-4f95-b8f2-f32d9a50746e" config-ref="Validation_Config" value="#[attributes.uriParams.'customerID']"/>
+		<db:select doc:name="Select" doc:id="e59385bb-9968-4a88-82f9-904cd009f56d" config-ref="Database_Config" target="custDocById">
+			<db:sql ><![CDATA[select * from customers_documents where customer_id = :customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	customerId: attributes.uriParams.'customerID'
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="041799aa-5a91-4048-937a-1466347c503a" >
+			<when expression="#[sizeOf(vars.custDocById)&gt;0]">
+				<ee:transform doc:name="Transform Message" doc:id="46393b6b-0e6c-4e12-9431-903b923ed6eb" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.custDocById]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="2f9ced70-1022-4978-9283-dfdcdaf60122" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message': 'No record found.'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+</mule>

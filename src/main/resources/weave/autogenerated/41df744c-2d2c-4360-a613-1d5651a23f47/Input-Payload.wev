@@ -1,0 +1,10 @@
+%dw 2.0
+
+type auto_41df744c_2d2c_4360_a613_1d5651a23f47_Input_Payload = {
+  customer_document_id: Number, 
+  image_url: String, 
+  customer_id: Number, 
+  "type": "pancard" | "aadhar-card" | "driving-license", 
+  _?: Any
+}
+

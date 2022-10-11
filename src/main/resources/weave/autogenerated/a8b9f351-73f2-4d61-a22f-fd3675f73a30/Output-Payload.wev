@@ -1,0 +1,16 @@
+%dw 2.0
+
+type auto_a8b9f351_73f2_4d61_a22f_fd3675f73a30_Output_Payload = {
+  employee_type?: String, 
+  "id "?: Number, 
+  gender?: Number, 
+  phone?: String, 
+  date_of_birth?: String, 
+  last_name?: String, 
+  active?: String, 
+  first_name?: String, 
+  email?: String, 
+  annual_income?: String, 
+  _?: Any
+}
+
