@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_b5409c7a_4074_4283_a6be_186e315f8a5c_Output_Variables_customerStockData = Array<{|  portfolio_id: Number,   customer_id: Number,   portfolio_name: String,   stock_symbol?: String,   quantity?: Number,   buy_price?: Number,   sell_price?: Number,   status?: String,   buy_date?: Date,   sell_date?: Date|}>
+

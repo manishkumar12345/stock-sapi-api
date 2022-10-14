@@ -141,4 +141,42 @@ output application/json
     <flow name="post:\customer:application\json:stock-sapi-api-config">
         <flow-ref doc:name="insert-customer-data" doc:id="820b2015-295b-42fa-83df-bb8b242e95d7" name="insert-customer-data" />
     </flow>
+    <flow name="get:\customer-buy-stock\(stock-symbol)\(customer_id):stock-sapi-api-config">
+        <flow-ref doc:name="get-stock-symbol-by-customer" doc:id="7e1466bd-b604-4a51-ba01-b46f58757707" name="get-stock-symbol-by-customer" />
+    </flow>
+    <flow name="post:\wallet:application\json:stock-sapi-api-config">
+        <flow-ref doc:name="add-customer-wallet" doc:id="03c69de9-8bb1-453b-b75e-1bbade100f27" name="add-customer-wallet" />
+    </flow>
+    <flow name="get:\getCustomerWalletAmount\(customer_id):stock-sapi-api-config">
+        <flow-ref doc:name="call to get-customer-wallet-amount" doc:id="9399d102-cec3-4af1-b3db-1d4762d3d561" name="get-customer-wallet-amount" />
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="customer_id">attributes.uriParams.'customer_id'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  customer_id: 1,
+  wallet: 100
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="post:\customer-buy-stock:stock-sapi-api-config">
+        <ee:transform>
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  code: 201,
+  message: "Created successfully."
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
 </mule>
