@@ -124,31 +124,30 @@ output application/json
         </error-handler>
     </flow>
     <flow name="put:\customer\(customerId):application\json:stock-sapi-api-config">
-        <flow-ref doc:name="update-customer-data" doc:id="841e06b4-7a1b-4ecb-b8cc-cfb60e1a7227" name="update-customer-data" />
+        <flow-ref doc:name="call to update-customer-data" doc:id="841e06b4-7a1b-4ecb-b8cc-cfb60e1a7227" name="update-customer-data" />
     </flow>
     <flow name="get:\customer\all:stock-sapi-api-config">
-        <flow-ref doc:name="get-all-customer-data" doc:id="24f8b231-95c7-4d3c-94c4-6ac70a41e42c" name="get-all-customer-data" />
+        <flow-ref doc:name="call to get-all-customer-data" doc:id="24f8b231-95c7-4d3c-94c4-6ac70a41e42c" name="get-all-customer-data" />
     </flow>
     <flow name="get:\customer-document\(customerID):stock-sapi-api-config">
-        <flow-ref doc:name="sapi-customer-doc-by-id" doc:id="0d84924d-d93d-4413-8ded-1df7a8f1000c" name="sapi-customer-doc-by-id" />
+        <flow-ref doc:name="call to sapi-customer-doc-by-id" doc:id="0d84924d-d93d-4413-8ded-1df7a8f1000c" name="sapi-customer-doc-by-id" />
     </flow>
     <flow name="get:\customer\(customerId):stock-sapi-api-config">
-        <flow-ref doc:name="get-customer-by-id" doc:id="437c8c73-a6f8-4cbb-a038-39e920c35cf1" name="get-customer-by-id" />
+        <flow-ref doc:name="call to get-customer-by-id" doc:id="437c8c73-a6f8-4cbb-a038-39e920c35cf1" name="get-customer-by-id" />
     </flow>
     <flow name="post:\customer-document:application\json:stock-sapi-api-config">
-        <flow-ref doc:name="add-customer-document" doc:id="76ea07e3-e73e-4f1d-b94b-4276c04dc968" name="sapi-add-customer-document" />
+        <flow-ref doc:name="call to add-customer-document" doc:id="76ea07e3-e73e-4f1d-b94b-4276c04dc968" name="sapi-add-customer-document" />
     </flow>
     <flow name="post:\customer:application\json:stock-sapi-api-config">
-        <flow-ref doc:name="insert-customer-data" doc:id="820b2015-295b-42fa-83df-bb8b242e95d7" name="insert-customer-data" />
+        <flow-ref doc:name="call to insert-customer-data" doc:id="820b2015-295b-42fa-83df-bb8b242e95d7" name="insert-customer-data" />
     </flow>
     <flow name="get:\customer-buy-stock\(stock-symbol)\(customer_id):stock-sapi-api-config">
-        <flow-ref doc:name="get-stock-symbol-by-customer" doc:id="7e1466bd-b604-4a51-ba01-b46f58757707" name="get-stock-symbol-by-customer" />
+        <flow-ref doc:name="call to get-stock-symbol-by-customer" doc:id="7e1466bd-b604-4a51-ba01-b46f58757707" name="get-stock-symbol-by-customer" />
     </flow>
     <flow name="post:\wallet:application\json:stock-sapi-api-config">
         <flow-ref doc:name="call to add-customer-wallet flow" doc:id="03c69de9-8bb1-453b-b75e-1bbade100f27" name="add-customer-wallet" />
     </flow>
     <flow name="get:\getCustomerWalletAmount\(customer_id):stock-sapi-api-config">
-        <logger level="INFO" doc:name="in sapi" doc:id="845cd91c-1aa0-4e0a-9d1c-112a0bac410e" message="in sapi flow" />
         <flow-ref doc:name="call to get-customer-wallet-amount" doc:id="9399d102-cec3-4af1-b3db-1d4762d3d561" name="get-customer-wallet-amount" />
     </flow>
     <flow name="post:\customer-buy-stock:stock-sapi-api-config">
