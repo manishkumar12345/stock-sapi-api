@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
     <http:listener-config name="stock-sapi-api-httpListenerConfig">
-        <http:listener-connection host="0.0.0.0" port="8081" />
+        <http:listener-connection host="0.0.0.0" port="8081" readTimeout="900000000" connectionIdleTimeout="60000" />
     </http:listener-config>
     <apikit:config name="stock-sapi-api-config" api="stock-sapi-api.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
     <flow name="stock-sapi-api-main">
@@ -145,26 +145,11 @@ output application/json
         <flow-ref doc:name="get-stock-symbol-by-customer" doc:id="7e1466bd-b604-4a51-ba01-b46f58757707" name="get-stock-symbol-by-customer" />
     </flow>
     <flow name="post:\wallet:application\json:stock-sapi-api-config">
-        <flow-ref doc:name="add-customer-wallet" doc:id="03c69de9-8bb1-453b-b75e-1bbade100f27" name="add-customer-wallet" />
+        <flow-ref doc:name="call to add-customer-wallet flow" doc:id="03c69de9-8bb1-453b-b75e-1bbade100f27" name="add-customer-wallet" />
     </flow>
     <flow name="get:\getCustomerWalletAmount\(customer_id):stock-sapi-api-config">
+        <logger level="INFO" doc:name="in sapi" doc:id="845cd91c-1aa0-4e0a-9d1c-112a0bac410e" message="in sapi flow" />
         <flow-ref doc:name="call to get-customer-wallet-amount" doc:id="9399d102-cec3-4af1-b3db-1d4762d3d561" name="get-customer-wallet-amount" />
-        <ee:transform>
-            <ee:variables>
-                <ee:set-variable variableName="customer_id">attributes.uriParams.'customer_id'</ee:set-variable>
-            </ee:variables>
-        </ee:transform>
-        <ee:transform>
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{
-  customer_id: 1,
-  wallet: 100
-}]]></ee:set-payload>
-            </ee:message>
-        </ee:transform>
     </flow>
     <flow name="post:\customer-buy-stock:stock-sapi-api-config">
         <ee:transform>
@@ -178,5 +163,11 @@ output application/json
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
+    </flow>
+    <flow name="post:\customerPortfolio\(customer_id):application\json:stock-sapi-api-config">
+        <flow-ref doc:name="call to insert-stock-customer-portfolio-flow" doc:id="81423deb-0921-4c57-b3c6-72cae747154e" name="insert-stock-customer-portfolio" />
+    </flow>
+    <flow name="get:\getStockBySymbol\(symbol_name):stock-sapi-api-config">
+        <flow-ref doc:name="call to get-stock-data-by-symbol" doc:id="44aece92-de28-4297-a7b3-918c5aa6d7be" name="get-stock-data-by-symbol"/>
     </flow>
 </mule>

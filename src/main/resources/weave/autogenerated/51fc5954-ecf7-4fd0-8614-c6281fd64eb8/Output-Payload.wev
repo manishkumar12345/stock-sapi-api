@@ -1,0 +1,15 @@
+%dw 2.0
+
+type auto_51fc5954_ecf7_4fd0_8614_c6281fd64eb8_Output_Payload = {
+  sell_date?: String, 
+  quantity?: Number, 
+  stock_symbol: String, 
+  sell_price?: Number, 
+  buy_date?: String, 
+  buy_price?: Number, 
+  portfolio_name: String, 
+  customer_id: Number, 
+  status: "buy" | "sell", 
+  _?: Any
+}
+

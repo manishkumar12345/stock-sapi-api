@@ -9,6 +9,7 @@ types:
   updateCustomer: !include DataTypes/updateCustomerDataType.raml
   customer-document: !include DataTypes/cust-docDataType.raml
   cust-portfolio: !include DataTypes/cust-portfolio-dataType.raml
+  add-cust-portfolio: !include DataTypes/add-cust-portfolio-dataType.raml
   
   
 traits:
@@ -143,5 +144,31 @@ securedBy:
             body:
               application/json:
                 examples: !include Examples/cust-wallet-amount.raml
+
+/customerPortfolio/{customer_id}:
+  post:
+    is: [errorResponses]
+    description: Add the data in customer portfolio
+    body:
+      application/json:
+        type: add-cust-portfolio
+        examples: !include Examples/add-cust-portfolio-example.raml
+    responses:
+      201:
+        body:
+          application/json:
+            example: !include error-response/201.json
+
+/getStockBySymbol/{symbol_name}:
+  get:
+    description: Get stock data by symbol name
+    responses:
+      200:
+        body:
+          application/json:
+            examples: !include Examples/stock-data-example.raml
+
+
+
 
 

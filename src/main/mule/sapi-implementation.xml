@@ -57,6 +57,7 @@ VALUES(:first_name,:last_name,:email,:phone,:date_of_birth,:gender,:employee_typ
 output application/json
 ---
 {
+	"Success"    : true,
 	'success': 'Customer has been created successfully.'
 }]]></ee:set-payload>
 					</ee:message>
@@ -121,7 +122,8 @@ where id = :customer_id]]></db:sql>
 output application/json
 ---
 {
-	'success': 'Customer updated successfully'
+	"Success"    : true,
+	'message': 'Customer updated successfully'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
@@ -244,7 +246,8 @@ values(:customer_id,:doc_type,:image_url,:doc_status)
 output application/json
 ---
 {
-	"success" : "The Customer Document has been successfully added."
+	"Success"    : true,
+	"message" : "The Customer Document has been successfully added."
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
@@ -298,10 +301,10 @@ output application/json
 		</choice>
 	</sub-flow>
 	<sub-flow name="add-customer-wallet" doc:id="74c8ba36-9dd3-4067-901e-59424096f414" >
-		<set-variable value="#[100+100]" doc:name="Set Variable" doc:id="4a3d51fd-11e5-4a13-8ab8-c791dd9bb2d3" variableName="test" />
-		<logger level="INFO" doc:name="Logger" doc:id="838b3c82-d244-4955-83c8-168fb6610542" message="#[vars.test]" />
-		<validation:is-not-null doc:name="customer-id-should-not-null" doc:id="e93e56f8-8f2a-4006-a236-4897f5b27369" config-ref="Validation_Config" value="#[payload.customer_id]" />
-		<validation:is-number numberType="INTEGER" doc:name="Is number" doc:id="ed26a1a2-aa36-4e74-b659-e12e57ddf20f" config-ref="Validation_Config" value="#[payload.customer_id]" />
+		<logger level="INFO" doc:name="check wallet payload" doc:id="838b3c82-d244-4955-83c8-168fb6610542" message="wallet payload : #[payload]" />
+		<set-variable value="#[message.attributes.queryParams.wallet_type as String]" doc:name="transaction-type" doc:id="db6658bc-9f51-4e49-8d5c-11f5b70d8f85" variableName="transactionType"/>
+		<validation:is-not-null doc:name="customer-id-should-not-null" doc:id="e93e56f8-8f2a-4006-a236-4897f5b27369" config-ref="Validation_Config" value="#[payload.customer_id]" message="Customer Id should not null"/>
+		<validation:is-number numberType="INTEGER" doc:name="customer-id-should-be-number" doc:id="ed26a1a2-aa36-4e74-b659-e12e57ddf20f" config-ref="Validation_Config" value="#[payload.customer_id]" message="Customer Id should be number"/>
 		<ee:transform doc:name="Original-payload" doc:id="779a6bba-8500-4bae-8966-6387c99f948b" >
 			<ee:message >
 			</ee:message>
@@ -311,10 +314,11 @@ output application/json
 ---
 payload
 
+
 	]]></ee:set-variable>
 			</ee:variables>
 		</ee:transform>
-		<db:select doc:name="Select" doc:id="261102b7-d110-439d-b5d9-700c3580a770" config-ref="Database_Config" target="checkCustomerExist">
+		<db:select doc:name="check-customer-exist-or-not" doc:id="261102b7-d110-439d-b5d9-700c3580a770" config-ref="Database_Config" target="checkCustomerExist">
 			<db:sql ><![CDATA[select * from customers where id = :customerId]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
 	customerId: vars.walletData.customer_id
@@ -322,16 +326,18 @@ payload
 		</db:select>
 		<choice doc:name="Choice" doc:id="724f12e4-cded-4d33-b38e-ae2029f801f4" >
 			<when expression="#[sizeOf(vars.checkCustomerExist)&gt;0]" >
-				<db:select doc:name="Select" doc:id="3ebd8b6e-34e0-460d-bfd1-ffa11afce4dc" config-ref="Database_Config" target="checkCustomerWallet" >
+				<logger level="INFO" doc:name="customer-exist" doc:id="9555393a-94a6-4b1d-a20c-9a7665b98f4b" message="customer is active"/>
+				<db:select doc:name="check-customer-wallet-amount" doc:id="3ebd8b6e-34e0-460d-bfd1-ffa11afce4dc" config-ref="Database_Config" target="checkCustomerWallet" >
 					<db:sql ><![CDATA[select customer_id,wallet from customers_wallet where customer_id = :customerId]]></db:sql>
 					<db:input-parameters ><![CDATA[#[{
 	customerId: vars.walletData.customer_id
 }]]]></db:input-parameters>
 				</db:select>
+				<logger level="INFO" doc:name="amount-exist-in-wallet" doc:id="1b22ba63-418c-49d8-808e-194b1700b0e8" message="customer has sufficient amount in wallet"/>
 				<choice doc:name="Choice" doc:id="ee0621bb-0003-43ba-b661-14e755daf522" >
 					<when expression="#[sizeOf(vars.checkCustomerWallet)&gt;0]" >
-						<logger level="INFO" doc:name="update-customer-wallet" doc:id="f3a9c26b-5d35-4a04-835e-9bbaa74e5908" message="update customer wallet" />
-						<ee:transform doc:name="Transform Message" doc:id="8db3f729-a03b-4e16-ae70-6a8c903a7c25" >
+						<logger level="INFO" doc:name="update-amount-in-customer-wallet" doc:id="f3a9c26b-5d35-4a04-835e-9bbaa74e5908" message="update amount in customer wallet" />
+						<ee:transform doc:name="plus-two-amount" doc:id="8db3f729-a03b-4e16-ae70-6a8c903a7c25" >
 							<ee:message >
 								<ee:set-payload ><![CDATA[%dw 2.0
 output application/java
@@ -353,26 +359,26 @@ vars.checkCustomerWallet.wallet[0] as Number - vars.walletData.amount
 ]]></ee:set-variable>
 							</ee:variables>
 						</ee:transform>
-						<logger level="INFO" doc:name="Logger" doc:id="6c2b00a0-6bee-4010-8442-0bbc50395912" message="total amount #[vars.totalWalletAmount]" />
-						<db:update doc:name="Update" doc:id="257f0a68-6d65-4b9c-9652-be9d86ac1d36" config-ref="Database_Config" >
+						<logger level="INFO" doc:name="total-amount" doc:id="6c2b00a0-6bee-4010-8442-0bbc50395912" message="total amount #[vars.totalWalletAmount]" />
+						<db:update doc:name="Update-amount-customer-wallet" doc:id="257f0a68-6d65-4b9c-9652-be9d86ac1d36" config-ref="Database_Config" >
 							<db:sql ><![CDATA[update customers_wallet set wallet = :wallet where customer_id = :customerId]]></db:sql>
 							<db:input-parameters ><![CDATA[#[{
 	customerId: vars.walletData.customer_id,
 	wallet: vars.totalWalletAmount
 }]]]></db:input-parameters>
 						</db:update>
-						<db:insert doc:name="add-entery-wallet-transaction" doc:id="58e0a16b-0f60-4d20-b0cc-2f74115d327b" config-ref="Database_Config" >
+						<db:insert doc:name="add-entry-wallet-transaction" doc:id="58e0a16b-0f60-4d20-b0cc-2f74115d327b" config-ref="Database_Config" >
 							<db:sql ><![CDATA[insert into wallet_transaction(customer_id,types,amount) values(:customerId,:types,:amount)]]></db:sql>
 							<db:parameter-types >
 								<db:parameter-type key="types" type="OTHER" />
 							</db:parameter-types>
 							<db:input-parameters ><![CDATA[#[{
 	customerId: vars.walletData.customer_id,
-	types: vars.walletData.wallet_type,
+	types: vars.transactionType,
 	amount: vars.walletData.amount
 }]]]></db:input-parameters>
 						</db:insert>
-						<ee:transform doc:name="Transform Message" doc:id="474f2972-d44f-41a5-91e6-5ac15d2b4f84" >
+						<ee:transform doc:name="success-message" doc:id="474f2972-d44f-41a5-91e6-5ac15d2b4f84" >
 							<ee:message >
 								<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
@@ -385,27 +391,28 @@ else
 						</ee:transform>
 					</when>
 					<otherwise >
-						<logger level="INFO" doc:name="Logger" doc:id="b96d91bb-5c7f-4ce6-af9c-d5d3d69aabbd" message="insert the wallet" />
-						<db:insert doc:name="Insert" doc:id="24f4778c-6319-457b-8a61-228ab9543f17" config-ref="Database_Config" autoGenerateKeys="true" target="insertWalletData" >
+						<logger level="INFO" doc:name="first-time-insert-amount-wallet" doc:id="b96d91bb-5c7f-4ce6-af9c-d5d3d69aabbd" message="insert the wallet" />
+						<db:insert doc:name="Insert amount in customer wallet" doc:id="24f4778c-6319-457b-8a61-228ab9543f17" config-ref="Database_Config" autoGenerateKeys="true" target="insertWalletData" >
 							<db:sql ><![CDATA[insert into customers_wallet(customer_id,wallet) values(:customerId,:wallet)]]></db:sql>
 							<db:input-parameters ><![CDATA[#[{
 	customerId: vars.walletData.customer_id,
 	wallet: vars.walletData.amount
 }]]]></db:input-parameters>
 						</db:insert>
-						<set-variable value="#[vars.insertWalletData.generatedKeys]" doc:name="Set Variable" doc:id="37351ff1-f045-453a-ab93-6a5895b8a464" variableName="walletLastInsertId" />
-						<db:insert doc:name="Insert" doc:id="7645ffaf-a316-4559-ba4d-d0c8aeeb99d1" config-ref="Database_Config" >
+						<logger level="INFO" doc:name="amount-inserted-in-wallet" doc:id="f45899cb-d2d5-4460-a078-c7156da06362" message="amount has been inserted in wallet table"/>
+						<db:insert doc:name="add-entry-wallet-transaction" doc:id="7645ffaf-a316-4559-ba4d-d0c8aeeb99d1" config-ref="Database_Config" >
 							<db:sql ><![CDATA[insert into wallet_transaction(customer_id,types,amount) values(:customerId,:types,:amount)]]></db:sql>
 							<db:parameter-types >
 								<db:parameter-type key="types" type="OTHER" />
 							</db:parameter-types>
 							<db:input-parameters ><![CDATA[#[{
 	customerId: vars.walletData.customer_id,
-	types: vars.walletData.wallet_type,
+	types: vars.transactionType,
 	amount: vars.walletData.amount
 }]]]></db:input-parameters>
 						</db:insert>
-						<ee:transform doc:name="Transform Message" doc:id="7bf0e06d-ab50-4886-835b-47a388cd6181" >
+						<logger level="INFO" doc:name="transaction inserted" doc:id="45ef6691-30d0-4df6-902f-02a8991f7522" message="transaction entry inserted in table"/>
+						<ee:transform doc:name="success-message" doc:id="7bf0e06d-ab50-4886-835b-47a388cd6181" >
 							<ee:message >
 								<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
@@ -489,14 +496,16 @@ output application/json
 		</choice>
 	</sub-flow>
 	<sub-flow name="get-customer-wallet-amount" doc:id="eaae686b-0bda-4250-96e8-a24dc7d5a621" >
-		<logger level="INFO" doc:name="Logger" doc:id="4e501fee-778c-492d-b195-d46ab1e0f7d2" />
+		<logger level="INFO" doc:name="Logger" doc:id="4e501fee-778c-492d-b195-d46ab1e0f7d2" message="rerrrrrrrrr"/>
 		<set-variable value="#[message.attributes.uriParams.'customer_id']" doc:name="Set customer-id" doc:id="3cd88617-5bb1-442d-a82e-b7a7461a0d88" variableName="customerId"/>
-		<db:select doc:name="Select" doc:id="adfe5d76-1436-4553-8f72-edea3f59db8c" config-ref="Database_Config" target="walletAmount">
+		<logger level="INFO" doc:name="Logger" doc:id="5e5799ca-f3b5-46d8-a460-49681e46f2fb" message="output of variiiii #[vars.customerId]"/>
+		<db:select doc:name="Select" doc:id="adfe5d76-1436-4553-8f72-edea3f59db8c" config-ref="Database_Config" target="walletAmount" queryTimeout="50000">
 			<db:sql ><![CDATA[select * from customers_wallet where customer_id = :customerId]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
 	customerId: vars.customerId
 }]]]></db:input-parameters>
 		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="08e0d9d6-1ec5-4b1f-ac7d-0d4ecaef39b6" message="out of gettttttttttttt #[vars.walletAmount]"/>
 		<choice doc:name="Choice" doc:id="7508009e-c4ab-4a4d-9a21-41fb831d35cb" >
 			<when expression="#[sizeOf(vars.walletAmount)&gt;0]">
 				<ee:transform doc:name="Transform Message" doc:id="96e4c5d6-dfcf-42b6-a7fe-c36dfcec74ec" >
@@ -504,7 +513,7 @@ output application/json
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-payload]]></ee:set-payload>
+vars.walletAmount]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
 			</when>
@@ -516,6 +525,154 @@ output application/json
 ---
 {
 	'message': 'No sufficient amount in your wallet'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="add-stock-customer-portfolio" doc:id="080fe5ad-f413-47a1-9398-29dcf9b42fe2" >
+		<logger level="INFO" doc:name="Logger" doc:id="17f33eba-1e5a-4cd5-bfdc-135baaf3224c" message="portfolio"/>
+		<db:select doc:name="Select" doc:id="4c24ecfd-fefb-4ceb-96d7-45caff8b932f" config-ref="Database_Config" target="checkCustomerExistOrNot">
+			<db:sql ><![CDATA[select * from customers where id = :customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	customerId : attributes.uriParams.'customer_id'
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="6c00abe2-96ed-4d6b-88c2-e311e1b2b928" >
+			<when expression="#[sizeOf(vars.checkCustomerExistOrNot)&gt;0]">
+				<db:insert doc:name="Insert stock data" doc:id="51f3bc53-19d0-4c3e-9fb8-0ed7f775d43b" config-ref="Database_Config" autoGenerateKeys="true" target="insertStockData">
+					<db:sql ><![CDATA[insert into customers_portfolio(customer_id,portfolio_name,stock_symbol,quantity,buy_price,sell_price,status,buy_date,sell_date)
+values(:customer_id,:portfolio_name,:stock_symbol,:quantity,:buy_price,:sell_price,:status,:buy_date,:sell_date)]]></db:sql>
+					<db:parameter-types >
+						<db:parameter-type key="status" type="OTHER" />
+					</db:parameter-types>
+					<db:input-parameters ><![CDATA[#[{
+	customer_id: payload.customer_id,
+	portfolio_name: payload.portfolio_name,
+	stock_symbol: payload.stock_symbol,
+	quantity: payload.quantity,
+	buy_price: payload.buy_price as Number,
+	sell_price: payload.sell_price as Number,
+	status: payload.status,
+	buy_date: payload.buy_date as Date {format:"yyyy-mm-dd"},
+	sell_date: payload.sell_date as Date {format:"yyyy-mm-dd"}
+	
+}]]]></db:input-parameters>
+				</db:insert>
+				<ee:transform doc:name="Transform Message" doc:id="a6268844-d884-45c7-b8b3-8f628e7f38ed" >
+					<ee:message >
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="portfolioSuccessStatus" ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'success': true
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="30a9649c-333f-4a60-b2b8-23f86e981d59" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message': 'Customer does not exist'
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="insert-stock-customer-portfolio" doc:id="51fc5954-ecf7-4fd0-8614-c6281fd64eb8" >
+		<logger level="INFO" doc:name="insert-customer-stock-portfolio-flow" doc:id="4bbc6910-2d22-43b9-a539-aa0156582a63" message="insert-customer-stock-portfolio-flow"/>
+		<db:select doc:name="Check-customer-exist Or not" doc:id="ccc36642-05fa-432a-aa82-0ab1f874410f" config-ref="Database_Config" target="checkCustomerExist">
+			<db:sql ><![CDATA[select * from customers where id = :customerId]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	customerId : message.attributes.uriParams.customer_id
+}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="aee3d192-e604-45df-a9e3-e197e28567ce" >
+			<when expression="#[sizeOf(vars.checkCustomerExist)&gt;0]">
+				<logger level="INFO" doc:name="before-insert" doc:id="f8545646-7090-48c6-86e9-f4c6a2197f89" message="payload: #[payload]"/>
+				<db:insert doc:name="Insert-stock-customer-portfolio" doc:id="59a89a5e-0d52-4322-a926-c28ea6c4eb57" config-ref="Database_Config" autoGenerateKeys="true">
+					<db:sql ><![CDATA[insert into customers_portfolio(customer_id,portfolio_name,stock_symbol,quantity,
+buy_price,sell_price,status,buy_date,sell_date) values(:customer_id,:portfolio_name,
+:stock_symbol,:quantity,:buy_price,:sell_price,:status,:buy_date,:sell_date)]]></db:sql>
+					<db:parameter-types >
+						<db:parameter-type key="status" type="OTHER"/>
+					</db:parameter-types>
+					<db:input-parameters ><![CDATA[#[{
+	customer_id: attributes.uriParams.customer_id,
+	portfolio_name: payload.portfolio_name as String default null,
+	stock_symbol: payload.stock_symbol as String default null,
+	quantity: attributes.queryParams.quantity,
+	buy_price: attributes.queryParams.buy_price,
+	sell_price: attributes.queryParams.sell_price,
+	status: attributes.queryParams.status,
+	buy_date: attributes.queryParams.buy_date,
+	sell_date: attributes.queryParams.sell_date
+}]]]></db:input-parameters>
+				</db:insert>
+				<logger level="INFO" doc:name="stock inserted" doc:id="4e4cb974-168a-4661-901c-f2b3e38c64e2" message="stock inserted"/>
+				<ee:transform doc:name="success-message" doc:id="ed75b4fd-50b7-4f6a-863a-508590bf35a5" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'success': true
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="customer-does-not-exist" doc:id="431302b3-c458-4a86-8ee3-e83402520c0b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'success': false
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</sub-flow>
+	<sub-flow name="get-stock-data-by-symbol" doc:id="f5d6c05f-5825-492a-a26d-0d4a6df10adc" >
+		<logger level="INFO" doc:name="Logger" doc:id="5232c4d8-a661-4a7b-9cb2-5125a03d9cb0" message="test"/>
+		<set-variable value="#[attributes.uriParams.symbol_name]" doc:name="Set Variable" doc:id="ae666949-d4f6-42c9-b5d1-1e42360becfc" variableName="stockSymbol"/>
+		<logger level="INFO" doc:name="Logger" doc:id="ac213716-8274-4d0f-9c3b-773b0bcc0443" message="stocksymbol #[vars.stockSymbol]"/>
+		<db:select doc:name="get-stock-data-by-symbol" doc:id="708cf9cc-1f3b-40c2-a5e1-e2f5e4a78f83" config-ref="Database_Config" target="stockData">
+			<db:sql ><![CDATA[select * from stock where stock_symbol = :stockSymbol]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	stockSymbol: vars.stockSymbol
+}]]]></db:input-parameters>
+		</db:select>
+		<logger level="INFO" doc:name="Logger" doc:id="cc390406-8e8b-4731-a873-f514433fe3be" message="sdfdsfdsfs #[vars.stockData]"/>
+		<choice doc:name="Choice" doc:id="195a5466-fc86-4bee-8b3a-55bfd37f7504" >
+			<when expression="#[sizeOf(vars.stockData)&gt;0]">
+				<ee:transform doc:name="stock-data" doc:id="01c8b12b-147c-425f-8eae-19f26bcc088a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.stockData]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="no-stock-data" doc:id="4557c611-38b3-4919-8629-f55c504e7df9" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'message': 'No stock found'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
