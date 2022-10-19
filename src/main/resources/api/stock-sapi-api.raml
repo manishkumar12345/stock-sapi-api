@@ -102,25 +102,16 @@ securedBy:
               type: customer-document
               examples: !include Examples/cust-docExample.raml
 
-/customer-buy-stock:
-  post:
-    description: Insert customer stock in portfolio.
+/customer-buy-stock/{stock-symbol}/{customer_id}:
+  get:
+    is: [errorResponses]
+    description: Get details of customer portfolio
     responses:
-      201:
+      200:
         body:
           application/json:
-            example: !include error-response/201.json
-
-  /{stock-symbol}/{customer_id}:
-    get:
-      is: [errorResponses]
-      description: Get details of customer portfolio
-      responses:
-        200:
-          body:
-            application/json:
-              type: cust-portfolio
-              examples: !include Examples/cust-portfolio-example.raml
+            type: cust-portfolio
+            examples: !include Examples/cust-portfolio-example.raml
 
 /wallet:
   post:
