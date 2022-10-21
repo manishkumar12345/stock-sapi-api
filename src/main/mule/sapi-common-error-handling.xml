@@ -5,17 +5,29 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
 	<error-handler name="sapi-common-error-handlingError_Handler" doc:id="22e2b747-ef18-4a5c-b27a-d08091641794" >
-		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="49d9b837-15f5-44a2-879b-058b1d98710d" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED, VALIDATION:INVALID_NUMBER, VALIDATION:NULL">
-			<ee:transform doc:name="Transform Message" doc:id="f80e4e63-64f4-4673-9d66-d7181f7103a9" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ff87e902-69d9-4d14-bbc0-1f00862bc1d5" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED, VALIDATION:INVALID_NUMBER, VALIDATION:NULL">
+			<ee:transform doc:name="error-message" doc:id="3bb8b6c0-7159-4b40-b3b8-c7843dcaf1e9" >
 				<ee:message >
 					<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	"errorType": error.errorMessage
+	"errorMessage": error.errorType
 }]]></ee:set-payload>
 				</ee:message>
 			</ee:transform>
-		</on-error-continue>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5d44f5f3-afa0-4af6-9002-7b6b6a60161a" type="APP:CUSTOMERROR">
+			<ee:transform doc:name="Transform Message" doc:id="40378590-be8f-4134-a6aa-dd91eb4355d8" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'error-type': 'Customer Id should be integer.'
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
 	</error-handler>
 </mule>
