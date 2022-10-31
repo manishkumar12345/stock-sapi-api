@@ -18,8 +18,12 @@ properties:
     minLength: 10
     maxLength: 10
   date_of_birth: date-only
-  gender: integer
-  employee_type: string
+  gender:
+    type: string
+    enum: [male,female]
+  employee_type: 
+    type: string
+    enum: [business,government,other]
   annual_income: string
   active:
     type: string

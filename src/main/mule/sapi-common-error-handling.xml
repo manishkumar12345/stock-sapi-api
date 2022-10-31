@@ -12,7 +12,8 @@ http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/
 output application/json
 ---
 {
-	"errorMessage": error.errorType
+	"error-type": error.errorType,
+	"error-message": error.description
 }]]></ee:set-payload>
 				</ee:message>
 			</ee:transform>
@@ -25,6 +26,18 @@ output application/json
 ---
 {
 	'error-type': 'Customer Id should be integer.'
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bf5e9678-9646-4c8f-a77f-1d404ddcdee4" type="STOCK:CUSTOMERROR">
+			<ee:transform doc:name="Transform Message" doc:id="500f8aec-09fa-431a-ac29-d5d067ecb976" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "stock not found."
 }]]></ee:set-payload>
 				</ee:message>
 			</ee:transform>

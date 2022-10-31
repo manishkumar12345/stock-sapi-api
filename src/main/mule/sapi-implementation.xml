@@ -26,10 +26,13 @@ output application/json
 var existEmail = payload.email
 ---
 {
+	'success': false,
+	'statusCode': 202,
 	'message' : "Customer already exist with this " ++ existEmail as String ++ " email."
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-email-already-exist" doc:id="1850c44b-a5d2-4858-8111-07f6abac1a0a" message="Customer email has already exist"/>
 			</when>
 			<otherwise >
 				<logger level="INFO" doc:name="default-block" doc:id="81e7ef12-9c95-462d-8881-2b25941969f3" message="insert-customer-data"/>
@@ -38,6 +41,8 @@ var existEmail = payload.email
 VALUES(:first_name,:last_name,:email,:phone,:date_of_birth,:gender,:employee_type,:annual_income,:active,:created_at)]]></db:sql>
 					<db:parameter-types >
 						<db:parameter-type key="active" type="OTHER" />
+						<db:parameter-type key="gender" type="OTHER" />
+						<db:parameter-type key="employee_type" type="OTHER" />
 					</db:parameter-types>
 					<db:input-parameters ><![CDATA[#[{
 	first_name: payload.first_name,
@@ -58,16 +63,20 @@ VALUES(:first_name,:last_name,:email,:phone,:date_of_birth,:gender,:employee_typ
 output application/json
 ---
 {
-	"Success"    : true,
-	'success': 'Customer has been created successfully.'
+	"success"    : true,
+	"statusCode": 201,
+	'message': 'The Customer ID ' ++ vars.insertCustomerData.generatedKeys as String ++ ' has been successfully created.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-inserted" doc:id="fff62c6a-36ca-4c7c-8239-bac83446b038" message="Customer has inserted successfully"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="update-customer-data" doc:id="a8b9f351-73f2-4d61-a22f-fd3675f73a30" >
 		<validation:is-not-null doc:name="customer-id-should-not-null" doc:id="e1b9ac41-31a4-4080-a204-07324ae279c7" config-ref="Validation_Config" value="#[attributes.uriParams.'customerId']"/>
+		<validation:is-number doc:name="customer Id should be number" doc:id="bb458537-658d-4616-bfd8-52d0f2c42c13" config-ref="Validation_Config" value="#[attributes.uriParams.'customerId']" minValue="1" numberType="INTEGER" message="Customer Id should be integer">
+		</validation:is-number>
 		<set-variable value="#[attributes.uriParams.'customerId']" doc:name="Set customer-id" doc:id="779abaa9-aa4d-4d8c-ad9d-1be05e28eebf" variableName="customerId"/>
 		<db:query-single doc:name="get-customer-data-by-id" doc:id="5927e93e-5bd2-4a1a-be8b-7e16eac1dc7e" config-ref="Database_Config" target="customerDataById">
 			<db:sql ><![CDATA[select * from customers where id =:customerId]]></db:sql>
@@ -75,47 +84,49 @@ output application/json
 	customerId : vars.customerId
 }]]]></db:input-parameters>
 		</db:query-single>
-		<ee:transform doc:name="Transform-payload" doc:id="e62afb56-8b18-4f4b-8577-a620d1e46e01" >
-			<ee:message >
-				<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-{
-	'first_name' : payload.first_name default vars.customerDataById.first_name,
-	'last_name' : payload.last_name default vars.customerDataById.last_name,
-	'email' : payload.email default vars.customerDataById.email,
-	'phone' : payload.phone default vars.customerDataById.phone,
-	'date_of_birth' : payload.date_of_birth default vars.customerDataById.date_of_birth,
-	'gender' : payload.gender default vars.customerDataById.gender,
-	'employee_type' : payload.employee_type default vars.customerDataById.employee_type,
-	'annual_income' : payload.annual_income default vars.customerDataById.annual_income,
-	'active' : payload.active default vars.customerDataById.active
-}]]></ee:set-payload>
-			</ee:message>
-		</ee:transform>
 		<choice doc:name="Choice" doc:id="ad273f2d-e0b0-4ee4-85a7-37e526433905" >
 			<when expression="#[sizeOf(vars.customerDataById)&gt;0]">
 				<logger level="INFO" doc:name="customer-update-block" doc:id="33392354-eea1-4b93-afad-338c703199e5" message="update customer block"/>
-				<db:update doc:name="update-customer-data" doc:id="0a260590-3dcb-42e6-abca-aeed6f05cacb" config-ref="Database_Config">
-					<db:sql ><![CDATA[update customers set first_name =: first_name,last_name = :last_name,email = :email, phone = :phone,date_of_birth = :date_of_birth,gender = :gender,employee_type = :employee_type,annual_income = :annual_income,active = :active
-where id = :customer_id]]></db:sql>
-					<db:parameter-types >
-						<db:parameter-type key="active" type="OTHER" />
-					</db:parameter-types>
-					<db:input-parameters ><![CDATA[#[{
-	customer_id: vars.customerId,
-	first_name: payload.first_name,
-	last_name: payload.last_name,
-	email: payload.email,
-	phone: payload.phone,
-	date_of_birth: payload.date_of_birth as Date {format: "yyyy-MM-dd"},
-	gender: payload.gender,
-	employee_type: payload.employee_type,
-	annual_income: payload.annual_income,
-	active: payload.active,
-	updated_at: now() as Date {format: "yyyy-MM-dd"}
-	
-}]]]></db:input-parameters>
+				<ee:transform doc:name="transforming-customer-data" doc:id="0f8eac8f-be8a-435e-9f8d-19fb56f70e31">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="customerUpdateData" ><![CDATA[%dw 2.0
+output application/json skipNullOn = "everywhere"
+---
+{
+	'first_name' : payload.first_name,
+	'last_name' : payload.last_name,
+	'email' : payload.email,
+	'phone' : payload.phone,
+	'date_of_birth' : payload.date_of_birth,
+	'gender' : payload.gender,
+	'employee_type' : payload.employee_type,
+	'annual_income' : payload.annual_income,
+	'active' : payload.active
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="console-transform-data" doc:id="b7a0a725-df45-4386-9d70-458386a236e6" message="print variable customerUpdateData is #[vars.customerUpdateData]"/>
+				<ee:transform doc:name="update-customer" doc:id="76123ce3-2681-4a2a-a93e-24885b9bbf87">
+					<ee:message>
+					</ee:message>
+					<ee:variables >
+						<ee:set-variable variableName="updateCustomerQuery" ><![CDATA[%dw 2.0
+output application/json
+---
+"UPDATE customers SET " ++ (vars.customerUpdateData mapObject {
+	"Query": $$ ++ " = '" ++ $ ++ "'"
+	 }
+	 pluck $ joinBy "," )
+	 ++ ", updated_at= '" ++ now() as String {format: "yyyy-MM-dd HH:m:s"} ++ "' WHERE id= " ++ vars.customerId]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<logger level="INFO" doc:name="console-payload" doc:id="ecdb49b3-c99b-452a-a706-5f3857e76333" message="print payload: #[payload]"/>
+				<logger level="INFO" doc:name="console-update-query" doc:id="50744606-b980-4e19-876b-866b00b640e8" message="print customer update query:  #[vars.updateCustomerQuery]"/>
+				<json-logger:logger doc:name="Logger" doc:id="2c312a90-97b5-45e1-9c93-94de591e5190" config-ref="JSON_Logger_Config" message="#[vars.updateCustomerQuery]"/>
+				<db:update doc:name="Update" doc:id="779b1ece-c764-4cd7-a834-f7fdec23c6e9" config-ref="Database_Config">
+					<db:sql ><![CDATA[#[vars.updateCustomerQuery]]]></db:sql>
 				</db:update>
 				<ee:transform doc:name="success-message" doc:id="ec7e2e09-00cb-4e09-8800-cc7a97687eb1" >
 					<ee:message >
@@ -124,10 +135,12 @@ output application/json
 ---
 {
 	"Success"    : true,
-	'message': 'Customer updated successfully'
+	"statusCode": 200,
+	'message': 'The Customer ID ' ++ vars.customerId as String ++ ' has been successfully updated'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-updated-successfully" doc:id="f5b5c092-310e-4bb7-b86c-513dc4207e81" message="customer updated successfully"/>
 			</when>
 			<otherwise >
 				<ee:transform doc:name="customer-does-not-exist" doc:id="18fa633e-f7a3-48cc-98d0-fe92f0ba5584" >
@@ -136,21 +149,22 @@ output application/json
 output application/json
 ---
 {
-	'message' : 'Customer does not exist'
+	'message' : 'No record found by '++ vars.customerId as String ++ ' Customer Id.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-not-updated" doc:id="8d6fcf46-93f3-4796-9ad8-6738b1f426ed" message="customer not updated"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="get-all-customer-data" doc:id="37eadf34-fa69-4e1a-b731-6b10be3c5a43" >
 		<logger level="INFO" doc:name="get-all-customer-data-flow" doc:id="a838f06e-a513-4049-bb0e-8e8d94b14829" message="get-all-customer-data-flow"/>
-		<logger level="INFO" doc:name="Logger" doc:id="a199f391-a418-4764-80b3-daf492b00030" message="#[message.attributes.queryParams.limit]"/>
+		<validation:is-not-null doc:name="Limit should not empty" doc:id="ae20f160-89ec-411c-aa34-4fc038d75010" config-ref="Validation_Config" value="#[message.attributes.queryParams.limit]" message="Limit query parameter is mandatory"/>
+		<validation:is-number doc:name="Limit-should-be-number" doc:id="692d14a5-a62b-4e8f-86e6-de8da5f683b1" config-ref="Validation_Config" value="#[message.attributes.queryParams.limit]" minValue="1" numberType="INTEGER" message="Limit should be integer"/>
+		<logger level="INFO" doc:name="console-queryParams" doc:id="a199f391-a418-4764-80b3-daf492b00030" message="#[message.attributes.queryParams.limit]"/>
 		<db:select doc:name="select-all-customer-data" doc:id="70e1e21b-d0f7-4242-af4f-30591a0673d0" config-ref="Database_Config" target="allCustomersData">
-			<db:sql ><![CDATA[SELECT customers.*, gender.name as genderValue
-FROM customers
-LEFT JOIN gender ON customers.gender = gender.id
-ORDER BY customers.first_name LIMIT :limit;]]></db:sql>
+			<db:sql ><![CDATA[SELECT * from customers
+ORDER BY first_name LIMIT :limit;]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
 	limit: message.attributes.queryParams.limit
 }]]]></db:input-parameters>
@@ -163,9 +177,15 @@ ORDER BY customers.first_name LIMIT :limit;]]></db:sql>
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-vars.allCustomersData]]></ee:set-payload>
+{
+	'success' : true,
+	'statusCode': 200,
+	'data': vars.allCustomersData
+}
+]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="get-all-customers-successfully" doc:id="cd836d67-f584-4371-82f9-798e6ab8fa3a" message="All customer get successfully"/>
 			</when>
 			<otherwise >
 				<ee:transform doc:name="no-customer-found" doc:id="ae0a25f5-0b87-4d47-ad2a-f69b567171c2" >
@@ -174,19 +194,22 @@ vars.allCustomersData]]></ee:set-payload>
 output application/json
 ---
 {
-	'message': 'No record found'
+	'success': false,
+	'statusCode': 204,
+	'message': 'No customer found'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="no-record-found" doc:id="31d0bd7d-476a-430e-a011-004919039461" message="No customer has found"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="get-customer-by-id" doc:id="7fde2619-8d09-4065-ada2-aa89294cdfc8" >
 		<logger level="INFO" doc:name="get-customer-by-id-flow" doc:id="f6ee7b75-0896-445f-84d5-62dad0216879" message="get-customer-by-id-flow"/>
-		<validation:is-number doc:name="Is number" doc:id="0702e651-185f-4f45-a8a8-305ab4c6f1e2" config-ref="Validation_Config" value="#[attributes.uriParams.'customerId']" minValue="1" numberType="INTEGER" message="Customer ID should be integer">
+		<validation:is-not-null doc:name="customer-id-should-not-null" doc:id="1026a4b0-b692-4175-9e24-3c7febd30cc5" config-ref="Validation_Config" value="#[attributes.uriParams.'customerId']" message="Customer id should not null"/>
+		<validation:is-number doc:name="customer-id-should-be-number" doc:id="0702e651-185f-4f45-a8a8-305ab4c6f1e2" config-ref="Validation_Config" value="#[attributes.uriParams.'customerId']" minValue="1" numberType="INTEGER" message="Customer ID should be integer">
 			<error-mapping sourceType="VALIDATION:INVALID_NUMBER" targetType="APP:CUSTOMERROR" />
 		</validation:is-number>
-		<logger level="INFO" doc:name="Logger" doc:id="73683a11-c15f-45cd-b0f4-340b1234e84c" message="test"/>
 		<db:select doc:name="select-customer-by-id" doc:id="b88a2bd9-5598-4c96-9ef4-d76eb34cc3f5" config-ref="Database_Config" target="getCustomerById">
 			<db:sql ><![CDATA[select * from customers where id =:customerId]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
@@ -201,9 +224,15 @@ output application/json
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-vars.getCustomerById]]></ee:set-payload>
+{
+	"success": true,
+	"statusCode": 200,
+	"data": vars.getCustomerById
+}
+]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-get-by-id-successfully" doc:id="01995438-b04b-4c79-ba72-d4ee0d6c9985" message="customer get by id successfully"/>
 			</when>
 			<otherwise >
 				<ee:transform doc:name="no-customer-found" doc:id="da695540-6b81-4482-adf3-9342b6708760" >
@@ -212,10 +241,13 @@ vars.getCustomerById]]></ee:set-payload>
 output application/json
 ---
 {
-	'message': 'No record found.'
+	'success': false,
+	'statusCode': 204,
+	'message': 'No customer found by ' ++ attributes.uriParams.'customerId' as String ++ ' ID.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="no-customer-found-by-particular-id" doc:id="42a25f10-dbe9-488c-8e6f-e30e0d64cdd3" message="no customer found by this id"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
@@ -235,6 +267,7 @@ output application/json
 		<choice doc:name="Choice" doc:id="659609da-26c0-41b9-83c5-8c91280c2569" >
 			<when expression="#[sizeOf(vars.checkCustomerExist)&gt;0]">
 				<logger level="INFO" doc:name="customer-exist-in-primay-table" doc:id="bc7de0bf-5f03-4dcb-a02e-92c477c75584" message="customer-exist-in-primay-table"/>
+				<logger level="INFO" doc:name="Logger" doc:id="79e2c8da-2218-4531-a760-f92727b60376" message="testtttttttttt #[payload.doc_status]"/>
 				<db:insert doc:name="add-customer-document-data" doc:id="51f259a0-b97d-4b9f-9d9c-7f301498455a" config-ref="Database_Config">
 					<db:sql ><![CDATA[insert into customers_documents(customer_id,doc_type,image_url,doc_status) 
 values(:customer_id,:doc_type,:image_url,:doc_status)
@@ -245,9 +278,9 @@ values(:customer_id,:doc_type,:image_url,:doc_status)
 					</db:parameter-types>
 					<db:input-parameters ><![CDATA[#[{
 	customer_id: payload.customer_id,
-	doc_type: payload."type",
+	doc_type: payload.doc_type,
 	image_url: payload.image_url,
-	doc_status: payload.status
+	doc_status: payload.doc_status
 }]]]></db:input-parameters>
 				</db:insert>
 				<ee:transform doc:name="success-message" doc:id="5318d4e2-79aa-4a64-8fc1-54f72d7aea63" >
@@ -257,36 +290,41 @@ output application/json
 ---
 {
 	"Success"    : true,
+	"statusCode": 201,
 	"message" : "The Customer Document has been successfully added."
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-document-inserted" doc:id="76db7671-ca6c-4c97-9d65-56d3b072a39c" message="customer document inserted successfully"/>
 			</when>
 			<otherwise >
 				<logger level="INFO" doc:name="customer-does-not-exist-in-primary-table" doc:id="e1b34d3b-d538-45a5-a2d9-9dacaa19c4ac" message="customer-does-not-exist-in-primary-table"/>
-				<ee:transform doc:name="message" doc:id="a1a71574-fe64-439e-878f-4706e710b9eb" >
+				<ee:transform doc:name="false-message" doc:id="a1a71574-fe64-439e-878f-4706e710b9eb" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	'message' : 'Customer does not exist'
+	'success': false,
+	'statusCode': 204,
+	'message' : 'No Customer found by ' ++ vars.customerId as String ++ ' Id.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-document-has-not-insert" doc:id="ececf5da-d822-475d-a20f-baba62ee108b" message="customer document has not insert"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="sapi-customer-doc-by-id" doc:id="d68cc106-24cf-4758-ae86-72f0e0de0652" >
-		<logger level="INFO" doc:name="get-customer-document-by-id-flow" doc:id="4cab76e4-e72b-4d11-8cd3-3ff05fc1bd64" message="get-customer-document-by-id-flow"/>
+		<logger level="INFO" doc:name="enter-get-customer-document-by-id-flow" doc:id="4cab76e4-e72b-4d11-8cd3-3ff05fc1bd64" message="get-customer-document-by-id-flow"/>
 		<validation:is-not-null doc:name="customer-id-should-not-null" doc:id="b92bad50-b5aa-4f95-b8f2-f32d9a50746e" config-ref="Validation_Config" value="#[attributes.uriParams.'customerID']" message="Customer ID should not null"/>
-		<validation:is-number doc:name="Is number" doc:id="5c32507f-4bb9-42f5-95dd-b2e511e31ea8" config-ref="Validation_Config" value="#[attributes.uriParams.'customerID']" minValue="1" numberType="INTEGER" message="Customer id should be integer..">
-			<error-mapping sourceType="VALIDATION:INVALID_NUMBER" targetType="APP:CUSTOMERROR" />
+		<validation:is-number doc:name="Is number" doc:id="5c32507f-4bb9-42f5-95dd-b2e511e31ea8" config-ref="Validation_Config" value="#[attributes.uriParams.'customerID']" minValue="1" numberType="INTEGER" message="Customer id should be integer.">
 		</validation:is-number>
+		<set-variable value="#[attributes.uriParams.'customerID']" doc:name="store-customer-id-in-variable" doc:id="6cabdc99-af3b-4e51-b4ce-04fc82bb4e64" variableName="customerID"/>
 		<db:select doc:name="get-customer-document-data-by-id" doc:id="e59385bb-9968-4a88-82f9-904cd009f56d" config-ref="Database_Config" target="custDocById">
 			<db:sql ><![CDATA[select * from customers_documents where customer_id = :customerId]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
-	customerId: attributes.uriParams.'customerID'
+	customerId: vars.customerID
 }]]]></db:input-parameters>
 		</db:select>
 		<choice doc:name="Choice" doc:id="041799aa-5a91-4048-937a-1466347c503a" >
@@ -297,9 +335,15 @@ output application/json
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-vars.custDocById]]></ee:set-payload>
+{
+	'success': true,
+	'status': 201,
+	'data': vars.custDocById
+}
+]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer document get successfully" doc:id="cceed989-6566-493c-9d10-682017e0fb2c" message="customer document get successfully"/>
 			</when>
 			<otherwise >
 				<logger level="INFO" doc:name="default-block" doc:id="abecfd02-4919-483d-8160-49cbd24e22db" message="default-block"/>
@@ -309,16 +353,29 @@ vars.custDocById]]></ee:set-payload>
 output application/json
 ---
 {
-	'message': 'No record found.'
+	'success': false,
+	'statusCode': 204,
+	'message': "No customer document found by " ++ vars.customerID as String ++ "Customer Id."
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="Fail to get the customer document" doc:id="243df34d-877e-46f8-aadd-2678b875343a" message="Fail to get the customer document"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="add-customer-wallet" doc:id="74c8ba36-9dd3-4067-901e-59424096f414" >
 		<logger level="INFO" doc:name="check wallet payload" doc:id="838b3c82-d244-4955-83c8-168fb6610542" message="wallet payload : #[payload]" />
-		<set-variable value="#[message.attributes.queryParams.wallet_type as String]" doc:name="transaction-type" doc:id="db6658bc-9f51-4e49-8d5c-11f5b70d8f85" variableName="transactionType"/>
+		<ee:transform doc:name="transaction-type" doc:id="dcf5a4bf-dea3-42ff-9c08-8547d7db3ab1" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="transactionType" ><![CDATA[%dw 2.0
+output application/java
+---
+
+message.attributes.queryParams.wallet_type as String default payload.wallet_type]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
 		<validation:is-not-null doc:name="customer-id-should-not-null" doc:id="e93e56f8-8f2a-4006-a236-4897f5b27369" config-ref="Validation_Config" value="#[payload.customer_id]" message="Customer Id should not null"/>
 		<validation:is-number numberType="INTEGER" doc:name="customer-id-should-be-number" doc:id="ed26a1a2-aa36-4e74-b659-e12e57ddf20f" config-ref="Validation_Config" value="#[payload.customer_id]" message="Customer Id should be number"/>
 		<ee:transform doc:name="Original-payload" doc:id="779a6bba-8500-4bae-8966-6387c99f948b" >
@@ -405,6 +462,7 @@ else
 "The amount has been successfully debit from your wallet."]]></ee:set-payload>
 							</ee:message>
 						</ee:transform>
+						<logger level="INFO" doc:name="amount-has-been-updated-in-wallet" doc:id="3b4a2ead-a5c6-4156-917c-5c0a0583613b" message="amount-has-been-updated-in-wallet"/>
 					</when>
 					<otherwise >
 						<logger level="INFO" doc:name="first-time-insert-amount-wallet" doc:id="b96d91bb-5c7f-4ce6-af9c-d5d3d69aabbd" message="insert the wallet" />
@@ -434,10 +492,13 @@ else
 output application/json
 ---
 {
-	'success': 'The Customer wallet has been added successfully.'
+	'success': true,
+	'statusCode': 201,
+	'message': 'The Customer wallet has been added successfully.'
 }]]></ee:set-payload>
 							</ee:message>
 						</ee:transform>
+						<logger level="INFO" doc:name="amount-has-been-inserted-in-wallet" doc:id="535aee4c-a8f5-4995-ba0d-5bd0a678fb6f" message="Amount has been inserted in wallet"/>
 					</otherwise>
 				</choice>
 			</when>
@@ -457,6 +518,8 @@ output application/json
 	</sub-flow>
 	<sub-flow name="get-stock-symbol-by-customer" doc:id="b5409c7a-4074-4283-a6be-186e315f8a5c" >
 		<logger level="INFO" doc:name="Logger" doc:id="f3266a04-1d8e-4db1-8591-42e1d2aab323" message="#[attributes.uriParams.'stock-symbol']"/>
+		<validation:is-not-null doc:name="stock-symbol-should-not-null" doc:id="f64e473d-7375-4bad-9f97-9b01c95afefb" config-ref="Validation_Config" value="#[attributes.uriParams.'stock-symbol']" message="Stock symbol should not empty."/>
+		<validation:is-number numberType="INTEGER" doc:name="customer-id-should-be-number" doc:id="35fc7c3a-49dd-4f09-9e84-8a516adfc609" config-ref="Validation_Config" value="#[attributes.uriParams.'customer_id']" minValue="1" message="Customer Id should be integer"/>
 		<db:select doc:name="checkCustomerExist" doc:id="bd8125e6-4203-4b42-aeeb-1448f5dac1a1" config-ref="Database_Config" target="checkCustomerExist">
 			<db:sql ><![CDATA[select * from customers where id =:customerId]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
@@ -474,31 +537,40 @@ output application/json
 				</db:select>
 				<choice doc:name="Choice" doc:id="cd9191b8-441c-41d0-9da6-7367bd24da8f" >
 					<when expression="#[sizeOf(vars.customerStockData)&gt;0]">
-						<ee:transform doc:name="Transform Message" doc:id="04aad8ce-089f-4a35-a013-66e47af0a984" >
-							<ee:message >
-								<ee:set-payload ><![CDATA[%dw 2.0
-output application/json
----
-vars.customerStockData]]></ee:set-payload>
-							</ee:message>
-						</ee:transform>
-					</when>
-					<otherwise >
-						<ee:transform doc:name="Transform Message" doc:id="de8085e8-b86e-4a8f-8c1a-53892797bdfe" >
+						<ee:transform doc:name="show-stock-data" doc:id="04aad8ce-089f-4a35-a013-66e47af0a984" >
 							<ee:message >
 								<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
 {
-	'message' : 'No stock found.'
+	'success': true,
+	'statusCode': 200,
+	'message': vars.customerStockData
+}
+]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+						<logger level="INFO" doc:name="stock-data-get-successfully" doc:id="ba6be8e9-ac05-41ee-ab13-c59ed4013b24" message="stock data get successfully"/>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="no-stock-data-found" doc:id="de8085e8-b86e-4a8f-8c1a-53892797bdfe" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	'success': false,
+	'statusCode': 204,
+	'message' : 'No stock found by ' ++ attributes.uriParams.'stock-symbol' as String ++ ' symbol.'
 }]]></ee:set-payload>
 							</ee:message>
 						</ee:transform>
+						<logger level="INFO" doc:name="no-stock-found " doc:id="6596a4d6-4d34-4939-8621-566662c878fc" message="No stock found "/>
 					</otherwise>
 				</choice>
 			</when>
 			<otherwise >
-				<ee:transform doc:name="Transform Message" doc:id="5db6e7bf-1bc2-45b5-be03-f910fdc87bcb" >
+				<ee:transform doc:name="customer-does-not-exist" doc:id="5db6e7bf-1bc2-45b5-be03-f910fdc87bcb" >
 					<ee:message >
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
@@ -530,9 +602,15 @@ output application/json
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-vars.walletAmount]]></ee:set-payload>
+{
+	'success': 'true',
+	'statusCode': 200,
+	'data': vars.walletAmount
+}
+]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="get-customer-wallet-successfully" doc:id="a926146c-c3c5-4e0c-a12e-5f571d3c60aa" message="customer wallet get successfully"/>
 			</when>
 			<otherwise >
 				<logger level="INFO" doc:name="no-amount-wallet" doc:id="b49b1008-64a6-4ba3-9892-ad1ab056167f" message="no-amount-wallet"/>
@@ -542,15 +620,19 @@ vars.walletAmount]]></ee:set-payload>
 output application/json
 ---
 {
-	'message': 'No sufficient amount in your wallet'
+	'success': false,
+	'statusCode': 204,
+	'message': 'No sufficient amount found in your wallet'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="wallet-has-no-amount" doc:id="6e5bbff5-4f03-455a-bf12-8d4eff3b0679" message="Wallet has no amount"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="add-stock-customer-portfolio" doc:id="080fe5ad-f413-47a1-9398-29dcf9b42fe2" >
 		<logger level="INFO" doc:name="console-payload" doc:id="17f33eba-1e5a-4cd5-bfdc-135baaf3224c" message="payload of stock customer portfolio: #[payload]"/>
+		<set-variable value="#[payload.stock_symbol]" doc:name="Set stock symbol variable" doc:id="0f689d50-2092-4e17-bc16-1918116c17c7" variableName="stockSymbol"/>
 		<db:select doc:name="check-customer-exist-or-not" doc:id="4c24ecfd-fefb-4ceb-96d7-45caff8b932f" config-ref="Database_Config" target="checkCustomerExistOrNot">
 			<db:sql ><![CDATA[select * from customers where id = :customerId]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
@@ -587,10 +669,13 @@ values(:customer_id,:portfolio_name,:stock_symbol,:quantity,:buy_price,:sell_pri
 output application/json
 ---
 {
-	'success': true
+	'success': true,
+	'statusCode': 201,
+	'message': 'The ' ++ vars.stockSymbol as String ++ ' stock symbol has been successfully added.'
 }]]></ee:set-variable>
 					</ee:variables>
 				</ee:transform>
+				<logger level="INFO" doc:name="stock-data-inserted-successfully" doc:id="f38f3549-e2c1-4d62-9f38-87318f9a23fb" message="stock data inserted successfully"/>
 			</when>
 			<otherwise >
 				<logger level="INFO" doc:name="customer-does-not-exist" doc:id="98c2feca-2b15-45fd-962b-0688e9b5b507" message="customer-does-not-exist"/>
@@ -600,10 +685,13 @@ output application/json
 output application/json
 ---
 {
-	'message': 'Customer does not exist'
+	'success': false,
+	'statusCode': 204,
+	'message': 'The customer does not found by ' ++ vars.stockSymbol as String ++ ' ID.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="stock-not-inserted-customer-portfolio" doc:id="b32a6873-d5fc-4f37-ba70-acc08b1fa29f" message="stock not inserted customer portfolio"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
@@ -644,10 +732,13 @@ buy_price,sell_price,status,buy_date,sell_date) values(:customer_id,:portfolio_n
 output application/json
 ---
 {
-	'success': true
+	'success': true,
+	'statusCode': 201,
+	'message': 'The ' ++ payload.stock_symbol as String ++ 'stock symbol has been successfully added.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="customer-stock-inserted-successfully" doc:id="3531c9cb-11c1-454e-a506-80e826f6c070" message="Customer stock inserted successfully"/>
 			</when>
 			<otherwise >
 				<ee:transform doc:name="customer-does-not-exist" doc:id="431302b3-c458-4a86-8ee3-e83402520c0b" >
@@ -656,18 +747,23 @@ output application/json
 output application/json
 ---
 {
-	'success': false
+	'success': false,
+	'statusCode': 204,
+	'message': 'The stock has been not inserted.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="stock-not-inserted" doc:id="647de877-1f38-4e9f-afad-b47c5847cab6" message="stock not inserted because customer does not exist"/>
 			</otherwise>
 		</choice>
 	</sub-flow>
 	<sub-flow name="get-stock-data-by-symbol" doc:id="f5d6c05f-5825-492a-a26d-0d4a6df10adc" >
 		<logger level="INFO" doc:name="get-stock-data-by-symbol-flow" doc:id="5232c4d8-a661-4a7b-9cb2-5125a03d9cb0" message="get-stock-data-by-symbol-flow"/>
+		<validation:is-not-null doc:name="stock-symbol-should-not-be-empty" doc:id="a0ade11e-049e-4bff-8ca8-f17d0a865268" config-ref="Validation_Config" value="#[attributes.uriParams.symbol_name]" message="Stock symbol should not be empty"/>
 		<set-variable value="#[attributes.uriParams.symbol_name]" doc:name="set-symbol-name-in-variable" doc:id="ae666949-d4f6-42c9-b5d1-1e42360becfc" variableName="stockSymbol"/>
 		<logger level="INFO" doc:name="console-stock-symbol-name" doc:id="ac213716-8274-4d0f-9c3b-773b0bcc0443" message="stock symbol:  #[vars.stockSymbol]"/>
 		<db:select doc:name="get-stock-data-by-symbol" doc:id="708cf9cc-1f3b-40c2-a5e1-e2f5e4a78f83" config-ref="Database_Config" target="stockData">
+			<error-mapping targetType="STOCK:CUSTOMERROR" sourceType="DB:QUERY_EXECUTION"/>
 			<db:sql ><![CDATA[select * from stock where stock_symbol = :stockSymbol]]></db:sql>
 			<db:input-parameters ><![CDATA[#[{
 	stockSymbol: vars.stockSymbol
@@ -681,9 +777,15 @@ output application/json
 						<ee:set-payload ><![CDATA[%dw 2.0
 output application/json
 ---
-vars.stockData]]></ee:set-payload>
+{
+	'success': true,
+	'statusCode': 200,
+	'data': vars.stockData
+}
+]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="stock-data-get-successfully" doc:id="2725ef63-d3e8-44e4-bbff-98ea128e6e0e" message="stock data get successfully"/>
 			</when>
 			<otherwise >
 				<ee:transform doc:name="no-stock-data" doc:id="4557c611-38b3-4919-8629-f55c504e7df9" >
@@ -692,10 +794,13 @@ vars.stockData]]></ee:set-payload>
 output application/json
 ---
 {
-	'message': 'No stock found'
+	'success': false,
+	'statusCode': 204,
+	'message': 'No stock found by ' ++ vars.stockSymbol as String ++ ' symbol.'
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>
+				<logger level="INFO" doc:name="no-stock-found" doc:id="3950e44c-866b-4ce3-8b71-bd3cdeb560a5" message="no stock found"/>
 			</otherwise>
 		</choice>
 	</sub-flow>

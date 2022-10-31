@@ -19,9 +19,10 @@ http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/sc
 		<db:generic-connection url="${db.URL}" driverClassName="${db.driver}" user="${db.user}" password="${secure::db.password}" />
 	</db:config>
 	<configuration-properties doc:name="Configuration properties" doc:id="a0df0b87-3e6f-4e43-8c3d-89fbaf945934" file="${env}-configuration.properties" />
-	<global-property doc:name="Global Property" doc:id="daae494b-5bb6-4798-895c-30e93e9f63de" name="env" value="prod" />
+	<global-property doc:name="Global Property" doc:id="daae494b-5bb6-4798-895c-30e93e9f63de" name="env" value="local" />
 	<json-logger:config name="JSON_Logger_Config" doc:name="JSON Logger Config" doc:id="c754a3ec-804f-413e-89ce-91a36d0ed350" environment="${mule.env}" />
 	<validation:config name="Validation_Config" doc:name="Validation Config" doc:id="aa1725c0-bebe-42a5-a291-bf4409bbe465" />
-	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="d587c172-75d0-4b61-a7c4-b428561b255d" file="prod-configuration.properties" key="1234567812345678" />
+	<configuration-properties doc:name="Configuration properties" doc:id="15d6b769-fc33-420a-8fc6-eb98d1c75f3a" file="secure-config.properties" />
 	<configuration doc:name="Configuration" doc:id="58b4f19a-d758-4bcc-82de-9276dfad1bf6" defaultErrorHandler-ref="sapi-common-error-handlingError_Handler" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="b5bc93ae-bacc-4d9a-9def-4363fc8f8ad8" file="secure-config.properties" key="1234567812345678" />
 </mule>

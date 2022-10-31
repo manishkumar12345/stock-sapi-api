@@ -32,7 +32,12 @@ securedBy:
       201:
         body:
           application/json:
-            example: !include error-response/201.json
+            example:
+              {
+                'success': true,
+                'statusCode': 201,
+                'message': 'The Customer ID 1 has been successfully created.'
+              }
   
   /{customerId}:
     put:
@@ -46,7 +51,12 @@ securedBy:
         200:
           body:
             application/json:
-              example: !include error-response/200.json
+              example:
+                {
+                'success': true,
+                'statusCode': 200,
+                'message': 'The Customer ID 1 has been successfully updated.'
+              }
                 
   
 
@@ -89,7 +99,12 @@ securedBy:
       201:
         body:
           application/json:
-            example: !include error-response/201.json
+            example:
+              {
+                'success': true,
+                'statusCode': 201,
+                'message': 'The Customer Document has been successfully added.'
+              }
   
   /{customerID}:
     get:
@@ -125,7 +140,13 @@ securedBy:
       201:
         body:
           application/json:
-            example: !include error-response/201.json
+            example:
+              {
+                'success': true,
+                'statusCode': 201,
+                'message': 'The Customer wallet has been added successfully.'
+              }
+              
 
 /getCustomerWalletAmount/{customer_id}:
   get:
@@ -148,7 +169,12 @@ securedBy:
       201:
         body:
           application/json:
-            example: !include error-response/201.json
+            example:
+              {
+                'success': true,
+                'statusCode': 201,
+                'message': 'The stock has been added successfully in customer portfolio.'
+              }
 
 /getStockBySymbol/{symbol_name}:
   get:

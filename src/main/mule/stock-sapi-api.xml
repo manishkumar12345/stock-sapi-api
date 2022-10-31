@@ -92,58 +92,40 @@ output application/json
             </on-error-propagate>
         </error-handler>
     </flow>
-    <flow name="stock-sapi-api-console" doc:id="41df744c-2d2c-4360-a613-1d5651a23f47">
-        <http:listener config-ref="stock-sapi-api-httpListenerConfig" path="/console/*">
-            <http:response statusCode="#[vars.httpStatus default 200]">
-                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
-            </http:response>
-            <http:error-response statusCode="#[vars.httpStatus default 500]">
-                <http:body>#[payload]</http:body>
-                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
-            </http:error-response>
-        </http:listener>
-        <apikit:console config-ref="stock-sapi-api-config" />
-        <error-handler>
-            <on-error-propagate type="APIKIT:NOT_FOUND">
-                <ee:transform>
-                    <ee:message>
-                        <ee:set-payload><![CDATA[%dw 2.0
-output application/json
----
-{message: "Resource not found"}]]></ee:set-payload>
-                    </ee:message>
-                    <ee:variables>
-                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
-                    </ee:variables>
-                </ee:transform>
-            </on-error-propagate>
-        </error-handler>
-    </flow>
     <flow name="put:\customer\(customerId):application\json:stock-sapi-api-config">
+        <logger level="INFO" doc:name="customer-update-flow-began" doc:id="2dcd3536-8b38-4441-b3df-e26cbc5ff6d0" message="customer update flow began" />
         <flow-ref doc:name="call to update-customer-data" doc:id="841e06b4-7a1b-4ecb-b8cc-cfb60e1a7227" name="update-customer-data" />
     </flow>
     <flow name="get:\customer\all:stock-sapi-api-config">
+        <logger level="INFO" doc:name="get-all-customer-flow-began" doc:id="e0d3867f-2586-493d-a4c3-4dfea2573a5f" message="Get all customer flow began" />
         <flow-ref doc:name="call to get-all-customer-data" doc:id="24f8b231-95c7-4d3c-94c4-6ac70a41e42c" name="get-all-customer-data" />
     </flow>
     <flow name="get:\customer-document\(customerID):stock-sapi-api-config">
+        <logger level="INFO" doc:name="get-customer-document-by-id-flow-began" doc:id="5fdffcd6-405b-480b-9996-85708644bcfc" message="Get customer document by ID flow began" />
         <flow-ref doc:name="call to sapi-customer-doc-by-id" doc:id="0d84924d-d93d-4413-8ded-1df7a8f1000c" name="sapi-customer-doc-by-id" />
     </flow>
     <flow name="get:\customer\(customerId):stock-sapi-api-config">
+        <logger level="INFO" doc:name="get-customer-by-id-flow-began" doc:id="238aabca-f617-4dd2-ab25-b230201d3e56" message="Get customer by id flow began" />
         <flow-ref doc:name="call to get-customer-by-id" doc:id="437c8c73-a6f8-4cbb-a038-39e920c35cf1" name="get-customer-by-id" />
     </flow>
     <flow name="post:\customer-document:application\json:stock-sapi-api-config">
+        <logger level="INFO" doc:name="insert-customer-document-flow-began" doc:id="86be2932-6986-4003-9c79-fd9a26d29802" message="Insert customer document flow began" />
         <flow-ref doc:name="call to add-customer-document" doc:id="76ea07e3-e73e-4f1d-b94b-4276c04dc968" name="sapi-add-customer-document" />
     </flow>
     <flow name="post:\customer:application\json:stock-sapi-api-config">
+        <logger level="INFO" doc:name="insert-customer-data-flow-began" doc:id="e1c12181-6c6c-4d91-8741-a715d87fac07" message="Insert customer data flow began" />
         <flow-ref doc:name="call to insert-customer-data" doc:id="820b2015-295b-42fa-83df-bb8b242e95d7" name="insert-customer-data" />
     </flow>
     <flow name="get:\customer-buy-stock\(stock-symbol)\(customer_id):stock-sapi-api-config">
+        <logger level="INFO" doc:name="customer-buy-stock-by-stock-syml-and-customer-id-flow-began" doc:id="2d29b2ce-cfe1-443b-a571-15bfdce68337" message="Customer buy stock by stock symbol and customer id flow began" />
         <flow-ref doc:name="call to get-stock-symbol-by-customer" doc:id="7e1466bd-b604-4a51-ba01-b46f58757707" name="get-stock-symbol-by-customer" />
     </flow>
     <flow name="post:\wallet:application\json:stock-sapi-api-config">
+        <logger level="INFO" doc:name="wallet-flow-began" doc:id="8ac55624-820a-43d1-b755-1913a0c90af7" message="Wallet flow began" />
         <flow-ref doc:name="call to add-customer-wallet flow" doc:id="03c69de9-8bb1-453b-b75e-1bbade100f27" name="add-customer-wallet" />
     </flow>
     <flow name="get:\getCustomerWalletAmount\(customer_id):stock-sapi-api-config">
+        <logger level="INFO" doc:name="get-customer-wallet-amount-flow-began" doc:id="8093d806-fbe2-4b44-830c-4924ebeb3a49" message="Get customer wallet amount flow began" />
         <flow-ref doc:name="call to get-customer-wallet-amount" doc:id="9399d102-cec3-4af1-b3db-1d4762d3d561" name="get-customer-wallet-amount" />
     </flow>
     <flow name="post:\customer-buy-stock:stock-sapi-api-config">
@@ -160,9 +142,11 @@ output application/json
         </ee:transform>
     </flow>
     <flow name="post:\customerPortfolio\(customer_id):application\json:stock-sapi-api-config">
+        <logger level="INFO" doc:name="insert-stock-in-customer-portfolio-flow-began" doc:id="b5207e3f-91ca-4351-8759-092e828e717e" message="Insert stock in customer portfolio flow began" />
         <flow-ref doc:name="call to insert-stock-customer-portfolio-flow" doc:id="81423deb-0921-4c57-b3c6-72cae747154e" name="insert-stock-customer-portfolio" />
     </flow>
     <flow name="get:\getStockBySymbol\(symbol_name):stock-sapi-api-config">
+        <logger level="INFO" doc:name="get-stock-by-symbol-name-flow-began" doc:id="5380925e-7cb3-444c-bbed-ba87fe7daedc" message="Get stock by symbol name flow began" />
         <flow-ref doc:name="call to get-stock-data-by-symbol" doc:id="44aece92-de28-4297-a7b3-918c5aa6d7be" name="get-stock-data-by-symbol" />
     </flow>
 </mule>
